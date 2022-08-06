@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+    <head>
+        <title>Todo Notes</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="../Library/Bootstrap/css/bootstrap.min.css">
+        <link rel="stylesheet" href="../Library/jquery.dataTables.min.css">
+        <script type="text/javascript" src="../Library/jQuery.min.js"></script>
+        <script type="text/javascript" src="../Library/jquery.dataTables.min.js"></script>
+        <script type="text/javascript" src="../Library/jQUery-validation.js"></script>
+        <script type="text/javascript" src="../Library/Bootstrap/js/bootstrap.min.js"></script>
+    </head>
+
+    <body>
+        <div class="content">
+
+          <fieldset id="student_information">
+            <div class="ml-2 mr-2 mt-sm-4">
+              <form id="new_form_data" class="row g-3 mt-4" action="#" method="POST" enctype="multipart/form-data">
+                  <div class="col-md-4">
+                    <input type="text" class="form-control" id="add_name" name="add_name" placeholder="Add Name">
+                  </div>
+                  <div class="col-md-2">
+                    <input type="text" class="form-control" id="add_course" placeholder="Add Course" name="add_course">
+                  </div>
+                  <div class="col-md-2">
+                    <input type="text" class="form-control" id="add_email" placeholder="Add Email" name="add_email">
+                  </div>
+                  <div class="col-md-2">
+                    <input type="text" class="form-control" id="add_phone_no" placeholder="Add Phone no" name="add_phone_no">
+                  </div>
+                  <!-- <div class="col-md-2">
+                    <input type="file" class="form-control" id="add_image" name="add_image" placeholder="Add Image">
+                  </div> -->
+                  <div class="col-md-2">
+                    <button type="submit" id="submit_new_data" class="btn btn-primary btn-block">Add Student</button>
+                  </div>
+                </form>
+              </div>
+            </fieldset>
+            <div id="search_bar" class="float-right m-4">
+              <div class="col-md-12">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Search Here">
+              </div>
+            </div>
+            <div class="mt-5 ml-2 mr-2">
+                <table id="dataTable" class="table table-bordered table-striped" width="100%">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Course</th>
+                      <th>Email</th>
+                      <th>Phone No</th>
+                      <th>Update</th>
+                      <th>Delete</th>
+                    </tr>
+                  </thead>
+                </table>
+            </div>
+        </div>
+        <!-- Update Todo using Modal Plugin (Dialog box/popup window that is displayed on top of the current page) -->
+
+    <div id="updateStudentModal" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+  
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <h4 class="modal-title">Update Record</h4>
+              <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <input type="text" class="form-control" id="update_name" placeholder="Name" required>
+              </div>
+              <div class="form-group">
+                <input type="text" class="form-control" id="update_course" placeholder="Course" required>
+              </div>
+              <div class="form-group">
+                <input type="text" class="form-control" id="update_email" placeholder="Email" required>
+              </div>
+              <div class="form-group">
+                <input type="text" class="form-control" id="update_phone_no" placeholder="Phone No" required>
+              </div>
+              <!-- <div class="form-group">
+                <input type="text" class="form-control" id="update_student_name" placeholder="Insert Task" required>
+              </div> -->
+            </div>
+            <input type="hidden" id="update_student_id" value="0">
+            <div class="modal-footer">
+              <button type="button" class="btn btn-success btn-sm" id="update_student">Save</button>
+              <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+        <script>
+            $(document).ready(function () {
+
+              function make_table(response) {
+                $('#dataTable tbody > tr').remove();
+                if(response.status == 0) {
+                  $("#dataTable").append("<tr align='center'><td colspan='6'><h5>"+response.message+"</h5></td></tr>");
+                }
+                else {
+                  $("#dataTable").append("<tbody>");
+                  $.each(response, function(key, value) {
+                    $("#dataTable").append("<tr>"+
+                      "<td>"+value.name+"</td>" +
+                      "<td>"+value.course+"</td>" +
+                      "<td>"+value.email+"</td>" +
+                      "<td>"+value.phone_no+"</td>" +
+                      "<td>"+"<button class='btn btn-warning btn-xs update_record' data-id='"+value.id+"' >UPDATE</button>"+"</td>" +
+                      "<td>"+"<button class='btn btn-danger btn-xs delete_record' data-id='"+value.id+"' >DELETE</button>"+"</td>" +
+                      "</tr>");
+                  });
+                  $("#dataTable").append("</tbody>");
+                }
+              }
+
+              function loadData() {
+                $.ajax({
+                  url: 'http://localhost/restapi_crud_php/api_fetch_data.php',
+                  type: "GET",
+                  success: function(response) {
+                    make_table(response);
+                  }
+                });
+              }
+              // Load data
+              loadData();
+
+              // Function for form data to json object
+              function jsonData(formData) {
+                var arr = $(formData).serializeArray();
+                var obj = {};
+                for(var a=0; a<arr.length; a++) {
+                  if(arr[a].value == "") {
+                    return false;
+                  }
+                  obj[arr[a].name] = arr[a].value;
+                }
+                var json_string = JSON.stringify(obj);
+                return json_string;
+              }
+
+              // Insert Data
+              $('#submit_new_data').click(function(e) {
+                e.preventDefault();
+                var jsonobj = jsonData("#student_information");
+                if(jsonobj == false) {
+                  alert("All fields required!!");
+                }
+                else {
+                  $.ajax({
+                    url: "http://localhost/restapi_crud_php/api_add_data.php",
+                    type: "POST",
+                    data: jsonobj,
+                    success: function(response){
+                      if(response.status == 1)
+                      {
+                        alert(response.message);
+                        $("#new_form_data").trigger("reset");
+                        loadData();
+                      }
+                      else
+                      {
+                        alert(response.message);
+                      }
+                    }
+                  });
+                }
+              });
+
+              // Insert Data
+              // $('#submit_new_data').click(function(e) {
+              //   e.preventDefault();
+              //   var formData = new FormData();
+              //   var files = $('#new_form_data.input[type=file]');
+              //   for (var i = 0; i < files.length; i++) {
+              //   if (files[i].value == "" || files[i].value == null) {
+              //       return false;
+              //   }
+              //   else {
+              //       formData.append(files[i].name, files[i].files[0]);
+              //   }
+              //   }
+              //   var formSerializeArray = $("#student_information").serializeArray();
+              //   console.log(formSerializeArray);
+              //   for (var i = 0; i < formSerializeArray.length; i++) {
+              //     formData.append(formSerializeArray[i].name, formSerializeArray[i].value)
+              //   }
+              //   // Display form data
+              //   for (var pair of formData.entries()) {
+              //       console.log(pair[0]+ ', ' + pair[1]); 
+              //   }
+              //   var jsonData = {};
+              //   for(const [key, value] of formData) {
+              //       jsonData[key] = value;
+              //   }
+              //   console.log(jsonData);
+              // });
+
+              // Update Student (Load data)
+              $(document).on("click", ".update_record",function() {
+                var id = $(this).data('id');
+                var obj = {sid: id}
+                var myjson = JSON.stringify(obj);
+                $.ajax({
+                    url: 'http://localhost/restapi_crud_php/api_fetch_single_data.php',
+                    type: "POST",
+                    data: myjson,
+                    success: function(response) {
+                      if(response.status == 1) {
+                        $('#update_name').val(response.data.name);
+                        $('#update_course').val(response.data.course);
+                        $('#update_email').val(response.data.email);
+                        $('#update_phone_no').val(response.data.phone_no);
+                        $('#update_student_id').val(response.data.student_id);
+                        $('#updateStudentModal').modal('toggle');
+                      }
+                      else {
+                        alert(response.data);
+                      }
+                    }
+                });
+              });
+
+              // Update student record
+              $("#update_student").click(function() {
+                var sid = $('#update_student_id').val();
+                var name = $('#update_name').val();
+                var course = $('#update_course').val();
+                var email = $('#update_email').val();
+                var phone_no = $('#update_phone_no').val();
+                var obj = {sid:sid, name:name, course:course, email:email, phone_no:phone_no};
+                var myjson = JSON.stringify(obj);
+                $.ajax({
+                  url: 'http://localhost/restapi_crud_php/api_update_record.php',
+                  type: "PUT",
+                  data: myjson,
+                  success: function(response) {
+                    if(response.status == 1)
+                    {
+                      $('#updateStudentModal').modal('toggle'); // Close update form modal
+                      loadData();
+                    }
+                    else
+                    {
+                      alert(response.message);
+                    }
+                  }
+                });
+              });
+              $(document).on("click", ".delete_record",function() {
+                if(confirm('Are you sure want to delete?')) {
+                  var id = $(this).data('id');
+                  var obj = {sid: id}
+                  var myjson = JSON.stringify(obj);
+                  $.ajax({
+                    url: 'http://localhost/restapi_crud_php/api_delete_data.php',
+                    type: "DELETE",
+                    data: myjson,
+                    success: function(response) {
+                      alert(response.message);
+                      loadData();
+                    }
+                  });
+                }
+              });
+              $("#search").on("keyup", function(){
+                var search_item = $(this).val();
+                if(search_item != "") {
+                  $.ajax({
+                    url: "http://localhost/restapi_crud_php/api_search.php?search="+search_item,
+                    type: "GET",
+                    success: function(response) {
+                      make_table(response);
+                    }
+                  });
+                }
+                else {
+                  loadData();
+                }
+              });
+            });
+        </script>
+    </body>
+</html>
